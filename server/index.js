@@ -14,31 +14,37 @@ const socketToEmailMapping = new Map();
 
 
 io.on('connection' , socket => {
-    console.log("New Connection...");
+    console.log("New Connection..." , socket.id);
 
-    socket.on('join-room' , data => {
-        const { emailId , roomId } = data;
-        console.log(`User ${emailId} joined the room ${roomId}`);
+    socket.on('join-room' , ({ emailId , roomId }) => {
+        console.log(`User ${emailId} joined the room ${roomId}` , socket.id);
 
         emailToSocketMapping.set(emailId , socket.id);
         socketToEmailMapping.set(socket.id , emailId);
 
         socket.join(roomId);
-        socket.emit('joined-room' , {roomId});
+        socket.emit('joined-room' , { roomId });
         socket.broadcast.to(roomId).emit('user-joined' , { emailId });
     });
 
     socket.on('call-user' , data => {
         const { emailId , offer } = data;
 
-        const sockeId = emailToSocketMapping.get(emailId);
-        const fromEmail = socketToEmailMapping.get(sockeId.id);
+        const socketId = emailToSocketMapping.get(emailId);
+        const fromEmail = socketToEmailMapping.get(socket.id);
 
-        socket.to(sockeId).emit('incomming-call' , { from:fromEmail , offer });
+        console.log('Calling to' , emailId , fromEmail , socketId , socket.id);
+        socket.to(socketId).emit('incomming-call' , { from:fromEmail , offer });
     });
 
+    socket.on('call-accepted' , ({ emailId , answer }) => {
+        console.log('Call accepted..' , socket.id);
+        const socketId = emailToSocketMapping.get(emailId);
+        socket.to(socketId).emit('call-Accepted' , { answer })
+    })
+
     socket.on('disconnect' , () => {
-        console.log(`User disconnected`);
+        console.log(`User disconnected` , socket.id);
     });
 });
 
